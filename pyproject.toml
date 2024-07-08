@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "tanks-server"
+version = "0.1.0"
+description = "Server for simple multiplayer tank game."
+authors = ["Tyson Liddell <tysonliddell@yelp.com>"]
+license = "mit"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
