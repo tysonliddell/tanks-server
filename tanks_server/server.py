@@ -1,64 +1,68 @@
 import asyncio
-from typing import Dict
+import functools
+
 from websockets import Data, WebSocketServerProtocol
 from websockets.server import serve
 
-from tanks_server.types import Direction, GameData, PlayerData, Position
+from tanks_server.config import PORT, TICK_SECS
+from tanks_server.game import Game, GameFull
+from tanks_server.types import Direction
 
-game_data = GameData(
-    player_data={}
-)
+KEY_TO_DIR = {
+    "R": Direction.RIGHT,
+    "L": Direction.LEFT,
+    "U": Direction.UP,
+    "D": Direction.DOWN,
+}
 
-MAX_PLAYERS = 4
-TICK_SECS = 1 / 10
-
-last_player_move = {}
-
-connections: Dict[int, WebSocketServerProtocol] = {}
 
 def valid_message(message: Data):
     return len(message.strip()) > 0
 
-async def listen_to_players(websocket: WebSocketServerProtocol):
-    if len(connections) >= 4:
+
+async def listen_to_players(websocket: WebSocketServerProtocol, game: Game):
+    try:
+        player = game.add_new_player(websocket)
+    except GameFull:
         await websocket.close(reason="Game Full!")
         return
-
-    curr_players = [p_num for p_num in connections]
-    player_num = next(n for n in range(1, MAX_PLAYERS+1) if n not in curr_players)
-    connections[player_num] = websocket
-    player_data = PlayerData(
-        position=Position(0,0),
-        direction=Direction.RIGHT,
-        bullet_position=None,
-        bullet_direction=None,
-        last_key_press=Direction.RIGHT,
-    )
-    game_data.player_data[player_num] = player_data
 
     try:
         async for message in websocket:
             if valid_message(message):
-                dir = message.strip()[0]
-                player_data.direction = dir
+                assert isinstance(message, str), "Message should be a string"
+                player.connection.last_message_recieved = message
                 await websocket.send("Ack!")
             else:
                 print("Received invalid message!")
     finally:
-        del game_data.player_data[player_num]
-        del connections[player_num]
+        game.remove_player(player.player_num)
 
-async def update_players():
+
+async def update_players(game: Game):
     while True:
-        for connection in connections.values():
-            await connection.send(str(game_data))
+        for player in game.players.values():
+            last_key_pressed = player.connection.last_message_recieved.strip()[0]
+            try:
+                player.direction = KEY_TO_DIR[last_key_pressed]
+            except KeyError:
+                pass  # Ignore unknown value
+
+        game.tick()
+
+        for player in game.players.values():
+            await player.connection.websocket.send(game.as_json())
         await asyncio.sleep(TICK_SECS)
 
+
 async def main():
-    # async with serve(listen_to_players, "localhost", 8765):
-    #     await asyncio.Future()  # run forever
-    server = await serve(listen_to_players, "localhost", 8765)
-    await asyncio.gather(server.wait_closed(), update_players())
+    game = Game(players={})
+    listener = functools.partial(listen_to_players, game=game)
+    updator = functools.partial(update_players, game=game)
+
+    server = await serve(listener, "localhost", PORT)
+    await asyncio.gather(server.wait_closed(), updator())
+
 
 if __name__ == "__main__":
     asyncio.run(main())
