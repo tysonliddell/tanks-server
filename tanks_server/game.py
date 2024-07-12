@@ -65,9 +65,9 @@ class Game:
             case Direction.RIGHT:
                 player.position.x += PLAYER_SPEED
             case Direction.UP:
-                player.position.y += PLAYER_SPEED
-            case Direction.DOWN:
                 player.position.y -= PLAYER_SPEED
+            case Direction.DOWN:
+                player.position.y += PLAYER_SPEED
 
         player.position.x %= ARENA_WIDTH
         player.position.y %= ARENA_HEIGHT
@@ -82,9 +82,9 @@ class Game:
             case Direction.RIGHT:
                 player.bullet_position.x += BULLET_SPEED
             case Direction.UP:
-                player.bullet_position.y += BULLET_SPEED
-            case Direction.DOWN:
                 player.bullet_position.y -= BULLET_SPEED
+            case Direction.DOWN:
+                player.bullet_position.y += BULLET_SPEED
 
         if (
             player.bullet_position.x < 0
