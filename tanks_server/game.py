@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Generator, Optional
 
 from websockets import WebSocketServerProtocol
 
@@ -31,6 +31,9 @@ class Game:
         except StopIteration:
             return None
 
+    def num_players(self) -> int:
+        return len(self.players)
+
     def add_new_player(self, websocket: WebSocketServerProtocol) -> Player:
         player_num = self._next_free_player_slot()
         if player_num is None:
@@ -47,6 +50,10 @@ class Game:
         )
         self.players[player_num] = player
         return player
+
+    def get_client_websockets(self) -> Generator[WebSocketServerProtocol, None, None]:
+        for player in self.players.values():
+            yield player.connection.websocket
 
     def remove_player(self, player_num: int):
         del self.players[player_num]

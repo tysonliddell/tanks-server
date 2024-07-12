@@ -1,7 +1,9 @@
 import asyncio
 import functools
+import json
+from typing import Any
 
-from websockets import Data, WebSocketServerProtocol
+from websockets import Data, WebSocketServerProtocol, broadcast
 from websockets.server import serve
 
 from tanks_server.config import PORT, TICK_SECS
@@ -20,6 +22,13 @@ def valid_message(message: Data):
     return len(message.strip()) > 0
 
 
+def debug_message(message: str) -> dict[str, Any]:
+    return {
+        "message": message,
+        "type": "debug",
+    }
+
+
 async def listen_to_players(websocket: WebSocketServerProtocol, game: Game):
     try:
         player = game.add_new_player(websocket)
@@ -27,12 +36,19 @@ async def listen_to_players(websocket: WebSocketServerProtocol, game: Game):
         await websocket.close(reason="Game Full!")
         return
 
+    init_message = {
+        "type": "init",
+        "player_num": player.player_num,
+        "num_players": game.num_players(),
+    }
+    await player.connection.websocket.send(json.dumps(init_message))
+
     try:
         async for message in websocket:
             if valid_message(message):
                 assert isinstance(message, str), "Message should be a string"
                 player.connection.last_message_recieved = message
-                await websocket.send("Ack!")
+                await websocket.send(json.dumps(debug_message("ACK")))
             else:
                 print("Received invalid message!")
     finally:
@@ -50,8 +66,8 @@ async def update_players(game: Game):
 
         game.tick()
 
-        for player in game.players.values():
-            await player.connection.websocket.send(game.as_json())
+        update_message = f'{{"type": "frame", "state": {game.as_json()}}}'
+        broadcast(game.get_client_websockets(), update_message)
         await asyncio.sleep(TICK_SECS)
 
 
@@ -60,7 +76,7 @@ async def main():
     listener = functools.partial(listen_to_players, game=game)
     updator = functools.partial(update_players, game=game)
 
-    server = await serve(listener, "localhost", PORT)
+    server = await serve(listener, "0.0.0.0", PORT)
     await asyncio.gather(server.wait_closed(), updator())
 
 
