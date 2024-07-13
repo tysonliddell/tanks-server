@@ -39,7 +39,7 @@ class Game:
         if player_num is None:
             raise GameFull
 
-        connection = ClientConnection(player_num, websocket, "R")
+        connection = ClientConnection(player_num, websocket, None)
         player = Player(
             connection=connection,
             player_num=player_num,

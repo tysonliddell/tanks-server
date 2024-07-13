@@ -12,7 +12,7 @@ ClientConnections: TypeAlias = Dict[int, "ClientConnection"]
 class ClientConnection:
     player_num: int
     websocket: WebSocketServerProtocol
-    last_message_recieved: str
+    last_message_recieved: Optional[str]
 
 
 @dataclass
