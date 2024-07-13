@@ -59,10 +59,14 @@ async def update_players(game: Game):
     while True:
         for player in game.players.values():
             last_key_pressed = player.connection.last_message_recieved.strip()[0]
-            try:
-                player.direction = KEY_TO_DIR[last_key_pressed]
-            except KeyError:
-                pass  # Ignore unknown value
+            if last_key_pressed == "X":
+                player.bullet_position = player.position
+                player.bullet_direction = player.direction
+            else:
+                try:
+                    player.direction = KEY_TO_DIR[last_key_pressed]
+                except KeyError:
+                    pass  # Ignore unknown value
 
         game.tick()
 
