@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
 from enum import Enum
+from math import sqrt
 from typing import Dict, Optional, TypeAlias
 
 from websockets import WebSocketServerProtocol
@@ -19,6 +20,9 @@ class ClientConnection:
 class Position:
     x: int
     y: int
+
+    def l2_distance(self, other: "Position"):
+        return sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2)
 
 
 class Direction(Enum):

@@ -6,6 +6,7 @@ from websockets import WebSocketServerProtocol
 from tanks_server.config import (
     ARENA_HEIGHT,
     ARENA_WIDTH,
+    BULLET_KILL_PROXIMITY,
     BULLET_SPEED,
     MAX_PLAYERS,
     PLAYER_SPEED,
@@ -95,7 +96,21 @@ class Game:
             player.bullet_position = None
             player.bullet_direction = None
 
+    def is_player_hit(self, player: Player):
+        other_players = [p for p in self.players.values() if p.player_num != player.player_num]
+
+        for p in other_players:
+            if p.bullet_position and p.bullet_position.l2_distance(player.position) < BULLET_KILL_PROXIMITY:
+                return True
+
+        return False
+
+    def kill_player(self, player: Player):
+        player.position = Position(0, 0)
+
     def tick(self):
         for player in self.players.values():
             self.move_player(player)
             self.move_bullet(player)
+            if self.is_player_hit(player):
+                self.kill_player(player)
