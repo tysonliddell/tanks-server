@@ -113,6 +113,8 @@ class Game:
 
     def kill_player(self, player: Player):
         player.position = Position(random.randrange(0, ARENA_WIDTH), random.randrange(0, ARENA_HEIGHT))
+        player.bullet_position = None
+        player.bullet_direction = None
         player.is_dead = True
         player.time_killed = datetime.now()
         player.seconds_until_respawn = float(RESPAWN_SECONDS)
