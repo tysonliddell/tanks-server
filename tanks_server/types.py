@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from math import sqrt
 from typing import Dict, Optional, TypeAlias
@@ -53,6 +54,9 @@ class Player:
     direction: Direction
     bullet_position: Optional[Position]
     bullet_direction: Optional[Direction]
+    is_dead: bool
+    time_killed: Optional[datetime]
+    seconds_until_respawn: Optional[float]
 
     def as_json(self) -> str:
         return json.dumps(
@@ -64,5 +68,7 @@ class Player:
                 "bx": self.bullet_position.x if self.bullet_position else None,
                 "by": self.bullet_position.y if self.bullet_position else None,
                 "bd": self.bullet_direction.to_client_str() if self.bullet_direction else None,
+                "x": self.is_dead,
+                "xs": self.seconds_until_respawn,
             }
         )

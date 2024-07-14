@@ -1,4 +1,6 @@
+import random
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Generator, Optional
 
 from websockets import WebSocketServerProtocol
@@ -10,6 +12,7 @@ from tanks_server.config import (
     BULLET_SPEED,
     MAX_PLAYERS,
     PLAYER_SPEED,
+    RESPAWN_SECONDS,
 )
 from tanks_server.types import ClientConnection, Direction, Player, Position
 
@@ -48,6 +51,9 @@ class Game:
             direction=Direction.RIGHT,
             bullet_position=None,
             bullet_direction=None,
+            is_dead=False,
+            time_killed=None,
+            seconds_until_respawn=None,
         )
         self.players[player_num] = player
         return player
@@ -106,10 +112,26 @@ class Game:
         return False
 
     def kill_player(self, player: Player):
-        player.position = Position(0, 0)
+        player.position = Position(random.randrange(0, ARENA_WIDTH), random.randrange(0, ARENA_HEIGHT))
+        player.is_dead = True
+        player.time_killed = datetime.now()
+        player.seconds_until_respawn = float(RESPAWN_SECONDS)
 
     def tick(self):
-        for player in self.players.values():
+        now = datetime.now()
+        dead_players = [p for p in self.players.values() if p.is_dead]
+        alive_players = [p for p in self.players.values() if not p.is_dead]
+
+        for player in dead_players:
+            seconds_until_respawn = float(RESPAWN_SECONDS) - (now - player.time_killed).total_seconds()
+            if seconds_until_respawn <= 0:
+                player.seconds_until_respawn = None
+                player.time_killed = None
+                player.is_dead = False
+            else:
+                player.seconds_until_respawn = seconds_until_respawn
+
+        for player in alive_players:
             self.move_player(player)
             self.move_bullet(player)
             if self.is_player_hit(player):
