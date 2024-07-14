@@ -57,6 +57,7 @@ class Player:
     is_dead: bool
     time_killed: Optional[datetime]
     seconds_until_respawn: Optional[float]
+    score: int
 
     def as_json(self) -> str:
         return json.dumps(
@@ -70,5 +71,6 @@ class Player:
                 "bd": self.bullet_direction.to_client_str() if self.bullet_direction else None,
                 "x": self.is_dead,
                 "xs": self.seconds_until_respawn,
+                "s": self.score,
             }
         )

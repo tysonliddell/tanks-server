@@ -54,6 +54,7 @@ class Game:
             is_dead=False,
             time_killed=None,
             seconds_until_respawn=None,
+            score=0,
         )
         self.players[player_num] = player
         return player
@@ -102,22 +103,24 @@ class Game:
             player.bullet_position = None
             player.bullet_direction = None
 
-    def is_player_hit(self, player: Player):
+    def get_player_killer(self, player: Player) -> Optional[int]:
         other_players = [p for p in self.players.values() if p.player_num != player.player_num]
 
         for p in other_players:
             if p.bullet_position and p.bullet_position.l2_distance(player.position) < BULLET_KILL_PROXIMITY:
-                return True
+                return p.player_num
 
-        return False
+        return None
 
-    def kill_player(self, player: Player):
-        player.position = Position(random.randrange(0, ARENA_WIDTH), random.randrange(0, ARENA_HEIGHT))
-        player.bullet_position = None
-        player.bullet_direction = None
-        player.is_dead = True
-        player.time_killed = datetime.now()
-        player.seconds_until_respawn = float(RESPAWN_SECONDS)
+    def kill_player(self, dead_player: Player, killer: Player):
+        dead_player.position = Position(random.randrange(0, ARENA_WIDTH), random.randrange(0, ARENA_HEIGHT))
+        dead_player.bullet_position = None
+        dead_player.bullet_direction = None
+        dead_player.is_dead = True
+        dead_player.time_killed = datetime.now()
+        dead_player.seconds_until_respawn = float(RESPAWN_SECONDS)
+
+        killer.score += 1
 
     def tick(self):
         now = datetime.now()
@@ -136,5 +139,6 @@ class Game:
         for player in alive_players:
             self.move_player(player)
             self.move_bullet(player)
-            if self.is_player_hit(player):
-                self.kill_player(player)
+            killer_player_num = self.get_player_killer(player)
+            if killer_player_num is not None:
+                self.kill_player(player, self.players[killer_player_num])
